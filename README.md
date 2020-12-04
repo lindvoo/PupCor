@@ -33,5 +33,5 @@ These are the steps you can follow:
 
 4) "Save" it will output a file with 1 and 0 corresponding with your Accept and Reject decision
 
-This is an example of how the GUI looks like data:
+This is an example of how the GUI looks like:
 ![Example 1](Pup_example.png)
