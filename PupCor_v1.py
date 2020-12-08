@@ -517,18 +517,14 @@ class PlotCanvas(FigureCanvas):
             if not os.path.exists(os.path.join(path, 'PupCor_output')):
                 os.makedirs(os.path.join(path, 'PupCor_output'))
 
-            # Sort [because new peaks are added at the end of the list]
-            self.peaks.sort()
-
             # Create file and save in PulseCor_output directory
-
-            newname = os.path.join(path + "/PupCor_output/" + file[:-4] + "_int_pup.txt")
+            newname = os.path.join(path, "PupCor_output", file[:-4] + "_int_pup.txt")
             thefile = open(newname, 'w')
             for item in self.int_pupdat:
                 thefile.write("%s\n" % item)
             thefile.close()
             
-            newname = os.path.join(path + "/PupCor_output/" + file[:-4] + "_smth_int_pup.txt")
+            newname = os.path.join(path, "PupCor_output", file[:-4] + "_smth_int_pup.txt")
             thefile = open(newname, 'w')
             for item in self.smooth_int_pupdat:
                 thefile.write("%s\n" % item)
@@ -694,7 +690,7 @@ class PlotCanvasTrials(FigureCanvas):
                 os.makedirs(os.path.join(path, 'PupCor_output'))
 
             # Create file and save in PulseCor_output directory
-            newname = os.path.join(path + "/PupCor_output/" + file[:-4] + "_acceptedtrials.txt")
+            newname = os.path.join(path , "PupCor_output", file[:-4] + "_acceptedtrials.txt")
             thefile = open(newname, 'w')
             for item in self.trialsaccepted:
                 thefile.write("%s\n" % int(item))
