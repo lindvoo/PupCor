@@ -521,13 +521,13 @@ class PlotCanvas(FigureCanvas):
             newname = os.path.join(path, "PupCor_output", file[:-4] + "_int_pup.txt")
             thefile = open(newname, 'w')
             for item in self.int_pupdat:
-                thefile.write("%s\n" % item)
+                thefile.write("%s\n" % int(item))
             thefile.close()
             
             newname = os.path.join(path, "PupCor_output", file[:-4] + "_smth_int_pup.txt")
             thefile = open(newname, 'w')
             for item in self.smooth_int_pupdat:
-                thefile.write("%s\n" % item)
+                thefile.write("%s\n" % int(item))
             thefile.close()
 
         except:
