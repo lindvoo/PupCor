@@ -54,8 +54,8 @@ class Window(QMainWindow):
         super().__init__()
 
         title = "PupCor"
-        top = 0
-        left = 0
+        top = 20
+        left = 20
         self.width = 1300
         self.height = 600
 
@@ -321,10 +321,14 @@ class PlotCanvas(FigureCanvas):
             self.interpol_evt_str=[num for num in self.interpol_evt_str if num!=0]
             self.interpol_evt_end=[num for num in self.interpol_evt_end if num!=0]
             
+            # Print how much data is interpolated
+            prop_int=sum(interpol_vec)/len(self.pupdat)
+            print("% of invaled samples is " + str(prop_int*100) + " %")   
+            
         else:
             
             print('Your cut off value is too high, please plot pupdat and check which value you should use!')
-            
+         
     def do_interpol(self):
 
         # Check if there is data
