@@ -56,8 +56,8 @@ class Window(QMainWindow):
         title = "PupCor"
         top = 20
         left = 20
-        self.width = 1300
-        self.height = 600
+        self.width = 3000
+        self.height = 1200
 
         self.setWindowTitle(title)
         self.setGeometry(top, left, self.width, self.height)
@@ -93,6 +93,8 @@ class Window(QMainWindow):
         y_start = self.width / 60
         self.makebutton("Get data", x=x_left, y=y_start,
                         do_action=self.get_data)
+        self.makebutton("Interpol val", x=x_left, y=y_start * 5,
+                        do_action=self.canvas_tc.changeinterpol)
         self.makebutton("Get blinks", x=x_left, y=y_start * 6,
                         do_action=self.canvas_tc.do_interpol)
         
@@ -212,13 +214,7 @@ class PlotCanvas(FigureCanvas):
 
         self.sF=50
         
-        # Interpolation settings
-        self.win_ave=10 # how many samples used for averaging
-        self.blinkval=0
-        self.smoothval=5
-        self.plotsmooth=0
-        self.win_lim=10 # minimum difference between eye blink events
-
+        
     def slidervalue1(self, value):
         
         self.blinkval=value*1000
@@ -228,7 +224,19 @@ class PlotCanvas(FigureCanvas):
         self.win_ave=value*10
     
     def get_data(self):
+        
+        # Interpolation settings
+        self.win_ave=5 # how many samples used for averaging
+        self.blinkval=0
+        self.smoothval=10
+        self.plotsmooth=0
+        self.win_lim=20 # minimum difference between eye blink events
 
+        self.rawdat=[]
+        self.pupdat=[]
+        self.int_pupdat=[]
+        self.smooth_int_pupdat=[]
+        
         # Get datafile
         self.filename = QFileDialog.getOpenFileName(self,
                                                     'Open a data file', '.', 'ASC files (*.asc);;All Files (*.*)')
@@ -393,17 +401,18 @@ class PlotCanvas(FigureCanvas):
             # Loop over interpolation start values
             for c_evt, n_evt in enumerate(self.interpol_evt_str):
                 
-                # Define interpolation value [average of -X window]
-                str_val=self.pupdat[self.interpol_evt_str[c_evt]-self.win_ave]
-                end_val=self.pupdat[self.interpol_evt_end[c_evt]+self.win_ave]
+                if self.interpol_evt_end[c_evt]+self.win_ave<len(self.pupdat):
+                    # Define interpolation value [average of -X window]
+                    str_val=self.pupdat[self.interpol_evt_str[c_evt]-self.win_ave]
+                    end_val=self.pupdat[self.interpol_evt_end[c_evt]+self.win_ave]
+                    
+                    # Define the gap that needs to be filled [half the start window to half the end window]
+                    gap_val=(self.interpol_evt_end[c_evt]+self.win_ave)-(self.interpol_evt_str[c_evt]-self.win_ave)
+                    int_val=(end_val-str_val)/gap_val
                 
-                # Define the gap that needs to be filled [half the start window to half the end window]
-                gap_val=(self.interpol_evt_end[c_evt]+self.win_ave)-(self.interpol_evt_str[c_evt]-self.win_ave)
-                int_val=(end_val-str_val)/gap_val
-            
-                # interpolate
-                for c_sam in range((self.interpol_evt_str[c_evt]-self.win_ave),(self.interpol_evt_end[c_evt]+self.win_ave)+1):
-                    self.int_pupdat[c_sam]=self.int_pupdat[c_sam-1]+int_val
+                    # interpolate
+                    for c_sam in range((self.interpol_evt_str[c_evt]-self.win_ave),(self.interpol_evt_end[c_evt]+self.win_ave)+1):
+                        self.int_pupdat[c_sam]=self.int_pupdat[c_sam-1]+int_val
 
             # plot
             self.remove()
@@ -426,7 +435,17 @@ class PlotCanvas(FigureCanvas):
         # Replot
         self.remove()
         self.plotall()
+   
+    def changeinterpol(self):
 
+        self.blinkval, ok = QInputDialog.getInt(self, "Input", "How much interpolation::", self.blinkval, 0,
+                                                20000, 1)
+
+        
+        # Replot
+        self.remove()
+        self.plotall()
+        
     def do_man_interpol(self):
 
         # get xaxis
