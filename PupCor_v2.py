@@ -3,13 +3,14 @@
 """
 Created on Wed Dec  2 18:47:31 2020
 
-@author: lindvoo
+@author: lindadevoogd
 """
 
 # General
 import os
 import sys
 import numpy as np
+import pandas as pd
 
 # Basis for the GUI
 #from PyQt5.QtGui     import *
@@ -30,18 +31,8 @@ import scipy.ndimage as ndimage
 
 # ------------------------------------------------------------------------------
 
-# Settings
-class DATASETTINGS():
-    
-    def __init__(self):
-        
-        self.rawdat = []
-        self.pupdat = []
-        
-        self.Hz=50 #data downsampled to 50 hz
-        
-        self.baseline = 1  # seconds > can be changed in GUI
-        self.stimduur = 6  # seconds > can be changed in GUI
+# Now adding defaults from a different file for easy access of settings
+from defaults_PupCor_v2 import pupcor_settings
 
 
 # ------------------------------------------------------------------------------
@@ -53,18 +44,19 @@ class Window(QMainWindow):
 
         super().__init__()
 
-        title = "PupCor"
-        top = 20
-        left = 20
-        self.width = 3000
-        self.height = 1200
 
+        # Get the settings
+        self.inputdata = pupcor_settings()
+        title = "PupCor"
+        
+        # GUI
+        top = self.inputdata.top
+        left = self.inputdata.left
+        self.width = self.inputdata.width
+        self.height = self.inputdata.height
         self.setWindowTitle(title)
         self.setGeometry(top, left, self.width, self.height)
         self.setFixedSize(self.width, self.height)
-        
-        # Get data class [although this]
-        self.inputdata = DATASETTINGS()
 
         # Run GUI
         self.MyUI()
@@ -93,18 +85,18 @@ class Window(QMainWindow):
         y_start = self.width / 60
         self.makebutton("Get data", x=x_left, y=y_start,
                         do_action=self.get_data)
-        self.makebutton("Interpol val", x=x_left, y=y_start * 5,
+        self.makebutton("Interpol val", x=x_left, y=y_start * 6,
                         do_action=self.canvas_tc.changeinterpol)
-        self.makebutton("Get blinks", x=x_left, y=y_start * 6,
+        self.makebutton("Get blinks", x=x_left, y=y_start * 7,
                         do_action=self.canvas_tc.do_interpol)
         
         self.nameLabel1 = QLabel('Manual changes:', self)
         self.nameLabel1.setFont(QFont('Arial', 8))
-        self.nameLabel1.move(x_left,y_start * 7)
+        self.nameLabel1.move(x_left,y_start * 8)
         
-        self.makebutton("Remove", x=x_left, y=y_start * 8,
+        self.makebutton("Remove", x=x_left, y=y_start * 9,
                         do_action=self.canvas_tc.do_man_interpol)
-        self.makebutton("Restore", x=x_left, y=y_start * 9,
+        self.makebutton("Restore", x=x_left, y=y_start * 10,
                         do_action=self.canvas_tc.do_man_restore)
         
         self.nameLabel1 = QLabel('Others:', self)
@@ -150,7 +142,7 @@ class Window(QMainWindow):
                         do_action=self.canvas_tr.save)
 
         self.fileLabel = QLabel('file name', self)
-        self.fileLabel.move(x_left,((self.height / 2) + self.height / 10) + y_start * 8)
+        self.fileLabel.move(x_left,((self.height / 2) + self.height / 10) + y_start * 10)
 
     def change_label(self):
 
@@ -209,83 +201,129 @@ class PlotCanvas(FigureCanvas):
         self.setParent(parent)
 
         # Get data classes
-        self.inputdata = DATASETTINGS()
+        self.inputdata = pupcor_settings()
+        self.sF=self.inputdata.Hz
         
+        # Interpolation settings
+        self.win_ave=self.inputdata.win_ave # how many samples used for averaging
+        self.blinkval=self.inputdata.blinkval # samples with 0's are blinks [change this in the GUI]
+        self.win_lim=self.inputdata.win_lim # minimum difference between eye blink events
+        
+        # Smoothing settings
+        self.smoothval=self.inputdata.smoothval # smoothing parameter
+        self.plotsmooth=self.inputdata.plotsmooth # 0/1 indicates whether it should be plotted
 
-        self.sF=50
-        
-        
     def slidervalue1(self, value):
         
-        self.blinkval=value*1000
+        pass #self.blinkval=value*1000
         
     def slidervalue2(self, value):
         
-        self.win_ave=value*10
+        # Update interpolation settings based on the slide
+        self.win_ave=value*5
+        self.win_lim=int(self.win_ave*2)
+        
     
     def get_data(self):
-        
-        # Interpolation settings
-        self.win_ave=5 # how many samples used for averaging
-        self.blinkval=0
-        self.smoothval=10
-        self.plotsmooth=0
-        self.win_lim=20 # minimum difference between eye blink events
 
-        self.rawdat=[]
-        self.pupdat=[]
-        self.int_pupdat=[]
-        self.smooth_int_pupdat=[]
-        
         # Get datafile
         self.filename = QFileDialog.getOpenFileName(self,
-                                                    'Open a data file', '.', 'ASC files (*.asc);;All Files (*.*)')
+                                                    'Open a data file', '.', 'Files (*.asc *.tsv);;All Files (*.*)')
+        
+        
+        flname, file_extension = os.path.splitext(self.filename[0])
         
         f = open(self.filename[0], 'r')
         self.rawdat=f.readlines()
 
-        # Get the sample frequency
-        rcd_line=[line for cnt, line in enumerate(self.rawdat) if "RECCFG" in line]
-        sampleline=rcd_line[0].split()
-        self.eyelink_sF=int(sampleline[4])
-        print('Your sample freq is ' + str(self.eyelink_sF) + ' Hz and will be downsamled to 50 Hz')
+
+        if file_extension == '.asc': # eye link converted ascii file
+        
+            # Get the sample frequency
+            rcd_line=[line for cnt, line in enumerate(self.rawdat) if "RECCFG" in line]
+            sampleline=rcd_line[0].split()
+            self.eyelink_sF=int(sampleline[4])
+            print('Your sample freq is ' + str(self.eyelink_sF) + ' Hz and will be downsamled to 50 Hz')
+        
+            # remove lines [script crashes when these lines are in there]
+            for rmstr in ["EFIX","ESACC","SFIX","SSACC","SBLINK","EBLINK","END"]:
+                self.rawdat = [line for line in self.rawdat if not rmstr in line]
+            
+            # take the pupil diameter
+            dat=[ [], [], [], [] ]
+            self.rawevt=[]
+            
+            #get recording line so everything  before will be removed
+            rcd_line=[cnt for cnt, line in enumerate(self.rawdat) if "SAMPLES" in line]
+            
+            # remove those lines from rawdata
+            self.rawdat = self.rawdat[rcd_line[-1]+1:]
+            
+            # get events and make vector
+            for c,line in enumerate(self.rawdat):
+                #if c>rcd_line[-1]: # just throws away lines before calibration [but might be file specific]
     
-        # remove lines [script crashes when these lines are in there]
-        for rmstr in ["EFIX","ESACC","SFIX","SSACC","SBLINK","EBLINK","END"]:
-            self.rawdat = [line for line in self.rawdat if not rmstr in line]
-        
-        # take the pupil diameter
-        dat=[ [], [], [], [] ]
-        self.rawevt=[]
-        
-        #get recording line so everything  before will be removed
-        rcd_line=[cnt for cnt, line in enumerate(self.rawdat) if "SAMPLES" in line]
-        
-        # remove those lines from rawdata
-        self.rawdat = self.rawdat[rcd_line[-1]+1:]
-        
-        # get events and make vector
-        for c,line in enumerate(self.rawdat):
-            #if c>rcd_line[-1]: # just throws away lines before calibration [but might be file specific]
-
-            if "MSG" in line:
-                self.rawevt.append(line)
-            else:
+                if "MSG" in line:
+                    self.rawevt.append(line)
+                else:
+                    spt_line=line.split('\t')
+                    for cc,dd in enumerate(spt_line):
+                        if cc<4:
+                            dat[cc].append(dd.strip('  '))
+            
+            #get pupil dilation
+            self.pupdat = [int(float(x)) for x in dat[3]]
+    
+            #down sample to 50 HZ
+            downsF=int(self.eyelink_sF/self.sF)
+            self.pupdat=self.pupdat[0::downsF]
+            
+            
+        elif file_extension == '.tsv': #Tobii implementation
+            
+            self.blinkval=-1 #Tobii sets blinks to -1
+            
+            header = self.rawdat[0].split()
+            dat = [[] for val in header]
+            
+            for c,line in enumerate(self.rawdat[1:]):
+                
                 spt_line=line.split('\t')
+                
                 for cc,dd in enumerate(spt_line):
-                    if cc<4:
-                        dat[cc].append(dd.strip('  '))
-        
-        #get pupil dilation
-        self.pupdat = [int(float(x)) for x in dat[3]]
+                    dat[cc].append(dd.strip('  '))
+            
+            #get pupil dilation
+            if self.inputdata.whichside=='Left':
+                which_side=[c for c,val in enumerate(header) if val=='PupilSizeLeft'] 
+                self.pupdat = [float(x) for x in dat[which_side[0]]] 
+            elif self.inputdata.whichside=='Right':
+                which_side=[c for c,val in enumerate(header) if val=='PupilSizeRight'] 
+                self.pupdat = [float(x) for x in dat[which_side[0]]] 
+            elif self.inputdata.whichside=='Mean':
+                which_sideL=[c for c,val in enumerate(header) if val=='PupilSizeLeft'] 
+                which_sideR=[c for c,val in enumerate(header) if val=='PupilSizeRight'] 
+                self.pupdatL = [float(x) for x in dat[which_sideL[0]]] 
+                self.pupdatR = [float(x) for x in dat[which_sideR[0]]] 
+                self.pupdat=[(val+self.pupdatL[c])/2 for val in self.pupdatR]
+            
+            # Tobii records only every 3rd sample
+            self.pupdat = self.pupdat[0::3] 
+            
+            # Remove highfreq noise from Tobii data with a rolling average
+            rol_val=self.inputdata.rol_val
+            pupdat_nan=[np.nan if val==-1 else self.pupdat[c] for c,val in enumerate(self.pupdat)]
+            df = pd.DataFrame(pupdat_nan)
+            pupdat_nan_sm = df.rolling(rol_val, min_periods=1).mean()
+            pupdat_nan_sm = pupdat_nan_sm[0].values.tolist()
+            pupdat_nan_sm= pupdat_nan_sm[int(rol_val/2):] + [-1] * int(rol_val/2)
+            self.pupdat=[-1 if val==-1 else pupdat_nan_sm[c] for c,val in enumerate(self.pupdat)] # Put back blinks [-1]
 
-        #down sample to 50 HZ
-        downsF=int(self.eyelink_sF/self.sF)
-        self.pupdat=self.pupdat[0::downsF]
-        
+
         self.axes.cla()
         self.axes.plot(self.pupdat, c='C0')
         self.draw()
+
 
     def get_eyeblinks(self):
         
@@ -297,9 +335,11 @@ class PlotCanvas(FigureCanvas):
             self.interpol_evt_str=[]
             self.interpol_evt_end=[]
             
-            # Get events based on input value, 0 == a blink
+            # Get events based on input value, 0 == a blink, 
             if self.blinkval==0:
                 interpol_vec=[int(x==0) for x in self.pupdat] 
+            elif self.blinkval==-1: #-1 blink in Tobii data
+                interpol_vec=[int(x==-1) for x in self.pupdat] 
             else:
                 interpol_vec=[int(x<self.blinkval) for x in self.pupdat] 
                           
@@ -331,12 +371,12 @@ class PlotCanvas(FigureCanvas):
             
             # Print how much data is interpolated
             prop_int=sum(interpol_vec)/len(self.pupdat)
-            print("% of invaled samples is " + str(prop_int*100) + " %")   
+            print("% of invaled samples is " + str(prop_int*100) + " %")
             
         else:
             
             print('Your cut off value is too high, please plot pupdat and check which value you should use!')
-         
+            
     def do_interpol(self):
 
         # Check if there is data
@@ -401,18 +441,17 @@ class PlotCanvas(FigureCanvas):
             # Loop over interpolation start values
             for c_evt, n_evt in enumerate(self.interpol_evt_str):
                 
-                if self.interpol_evt_end[c_evt]+self.win_ave<len(self.pupdat):
-                    # Define interpolation value [average of -X window]
-                    str_val=self.pupdat[self.interpol_evt_str[c_evt]-self.win_ave]
-                    end_val=self.pupdat[self.interpol_evt_end[c_evt]+self.win_ave]
-                    
-                    # Define the gap that needs to be filled [half the start window to half the end window]
-                    gap_val=(self.interpol_evt_end[c_evt]+self.win_ave)-(self.interpol_evt_str[c_evt]-self.win_ave)
-                    int_val=(end_val-str_val)/gap_val
+                # Define interpolation value [average of -X window]
+                str_val=self.pupdat[self.interpol_evt_str[c_evt]-self.win_ave]
+                end_val=self.pupdat[self.interpol_evt_end[c_evt]+self.win_ave]
                 
-                    # interpolate
-                    for c_sam in range((self.interpol_evt_str[c_evt]-self.win_ave),(self.interpol_evt_end[c_evt]+self.win_ave)+1):
-                        self.int_pupdat[c_sam]=self.int_pupdat[c_sam-1]+int_val
+                # Define the gap that needs to be filled [half the start window to half the end window]
+                gap_val=(self.interpol_evt_end[c_evt]+self.win_ave)-(self.interpol_evt_str[c_evt]-self.win_ave)
+                int_val=(end_val-str_val)/gap_val
+            
+                # interpolate
+                for c_sam in range((self.interpol_evt_str[c_evt]-self.win_ave),(self.interpol_evt_end[c_evt]+self.win_ave)+1):
+                    self.int_pupdat[c_sam]=self.int_pupdat[c_sam-1]+int_val
 
             # plot
             self.remove()
@@ -435,17 +474,17 @@ class PlotCanvas(FigureCanvas):
         # Replot
         self.remove()
         self.plotall()
-   
+
     def changeinterpol(self):
 
-        self.blinkval, ok = QInputDialog.getInt(self, "Input", "How much interpolation::", self.blinkval, 0,
+        self.blinkval, ok = QInputDialog.getInt(self, "Input", "Interpol for < val [f.e. 0/-1 == blink]:", self.blinkval, 0,
                                                 20000, 1)
 
         
         # Replot
         self.remove()
         self.plotall()
-        
+
     def do_man_interpol(self):
 
         # get xaxis
@@ -542,6 +581,7 @@ class PlotCanvas(FigureCanvas):
 
             # Create file and save in PulseCor_output directory
             newname = os.path.join(path, "PupCor_output", file[:-4] + "_int_pup.txt")
+            print(newname)
             thefile = open(newname, 'w')
             for item in self.int_pupdat:
                 thefile.write("%s\n" % int(item))
@@ -573,7 +613,7 @@ class PlotCanvasTrials(FigureCanvas):
         self.trialsaccepted = []
 
         # Get data classes
-        self.inputdata = DATASETTINGS()
+        self.inputdata = pupcor_settings()
 
     def get_trials(self):
 
@@ -713,7 +753,7 @@ class PlotCanvasTrials(FigureCanvas):
                 os.makedirs(os.path.join(path, 'PupCor_output'))
 
             # Create file and save in PulseCor_output directory
-            newname = os.path.join(path , "PupCor_output", file[:-4] + "_acceptedtrials.txt")
+            newname = os.path.join(path, "PupCor_output", file[:-4] + "_acceptedtrials.txt")
             thefile = open(newname, 'w')
             for item in self.trialsaccepted:
                 thefile.write("%s\n" % int(item))
