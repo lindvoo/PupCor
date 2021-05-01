@@ -32,7 +32,7 @@ import scipy.ndimage as ndimage
 # ------------------------------------------------------------------------------
 
 # Now adding defaults from a different file for easy access of settings
-from defaults_PupCor_v2 import pupcor_settings
+from defaults_PupCor_v2_tobii import pupcor_settings
 
 
 # ------------------------------------------------------------------------------
@@ -203,6 +203,12 @@ class PlotCanvas(FigureCanvas):
         # Get data classes
         self.inputdata = pupcor_settings()
         self.sF=self.inputdata.Hz
+        
+        # General settings
+        self.rawdat = self.inputdata.rawdat
+        self.pupdat = self.inputdata.pupdat
+        self.int_pupdat= self.inputdata.int_pupdat
+        self.smooth_int_pupdat = self.inputdata.smooth_int_pupdat
         
         # Interpolation settings
         self.win_ave=self.inputdata.win_ave # how many samples used for averaging
@@ -391,6 +397,9 @@ class PlotCanvas(FigureCanvas):
             
             #Get eye blinks
             self.get_eyeblinks()
+            
+            #
+            self.plotsmooth=0
                 
             #copy
             self.int_pupdat=self.pupdat[:]
@@ -477,7 +486,7 @@ class PlotCanvas(FigureCanvas):
 
     def changeinterpol(self):
 
-        self.blinkval, ok = QInputDialog.getInt(self, "Input", "Interpol for < val [f.e. 0/-1 == blink]:", self.blinkval, 0,
+        self.blinkval, ok = QInputDialog.getInt(self, "Input", "Interpol for < val [f.e. 0/-1 == blink]:", self.blinkval, -20000,
                                                 20000, 1)
 
         
