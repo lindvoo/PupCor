@@ -1,16 +1,18 @@
 # PupCor
 a simple python-based GUI to preprocess and manually correct pupil data 
 
-You just need to download the "PupCor_v1.py" file and install the dependencies.
+You just need to download the "PupCor_v2.py" and "defaults_PupCor_v2.py" files and install the dependencies.
 
-It is a very simply nothing fancy, easy to use GUI to get interpolated (and smoothed) pupil data [coming from the EyeLink for now other formats will be suported at a later stage]. In addition there is an option to go through the time course on a trial-by-trial basis, for which you need a file containing the times of the markers (eg onset of your stimuli). You can use this to manually accept or reject trial in case the data for that trial is not usable (eg someone closed there eyes for some time).
+It is a very simply nothing fancy, easy to use GUI to get interpolated (and smoothed) pupil data [for the EyeLink (.asc files) and Tobii (.tsv files) eyetrackers for now]. In addition there is an option to go through the time course on a trial-by-trial basis [not yet tested for the Tobii data], for which you need a file containing the times of the markers (eg onset of your stimuli). You can use this to manually accept or reject trial in case the data for that trial is not usable (eg someone closed there eyes for some time).
+
+Notes for Tobii data: I have noticed this contains some high freq noise probably due to limited accuracy in sampling? so when the Tobii data is read in an rolling average is applied to get rid of this and facilitate interpolation. When this setting is set to [1] no rolling average is applied.
 
 # TIME COURSE
 These are the steps you can follow:
 
-1) PupCor requires the pupil data to be in an .asc file. You would first need to convert to .edf files to .asc using the 
+1) PupCor requires the pupil data to be in an .asc or .tsv file. You would first need to convert the .edf files to .asc using the edf2asc tool from eyelink
 
-2) The "Get blinks" button can be used to interpolate eye blinks, there is a slider that can be used to change the length of the interpolation
+2) The "Get blinks" button can be used to interpolate eye blinks, there is a slider that can be used to change the length of the interpolation [in addition if this does not work well on your data you can change the default setting in the defaults file]. In addition, the "Interpol val" button lets you pick from which value you want to interpolate the data. The default value [which are the blinks] for the Eyelink is [0] and Tobii [-1], but based on the y-axis you can manually change this value using this button as I have noticed somethinges a blink is fe partial so it does not drop to [0]. 
 
 3) "Remove" can be used to manually interpolate a piece of data. Zoom in to the part you would like to interpole and click "Remove"
 
