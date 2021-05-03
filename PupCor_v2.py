@@ -32,7 +32,7 @@ import scipy.ndimage as ndimage
 # ------------------------------------------------------------------------------
 
 # Now adding defaults from a different file for easy access of settings
-from defaults_Pupcor_v2 import pupcor_settings
+from defaults_PupCor_v2 import pupcor_settings
 
 
 # ------------------------------------------------------------------------------
