@@ -6,6 +6,7 @@ Created on Tue Jan 12 09:05:25 2021
 @author: lindadevoogd
 """
 
+
 # Settings
 class pupcor_settings():
     
@@ -24,6 +25,8 @@ class pupcor_settings():
         # General settings
         self.rawdat = []
         self.pupdat = []
+        self.int_pupdat= []
+        self.smooth_int_pupdat = []
         
         # Interpolation settings [this is linked to the slider and can be updated
         # within the GUI, but if the interpolation still does not work well you 
