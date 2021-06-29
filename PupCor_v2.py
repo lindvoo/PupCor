@@ -239,7 +239,7 @@ class PlotCanvas(FigureCanvas):
         pupdat_2=self.pupdat[1::3]
         pupdat_3=self.pupdat[2::3]
         
-        for c,val in enumerate(pupdat_1):
+        for c in range(0,np.min([len(pupdat_1),len(pupdat_2),len(pupdat_3)])):
             temp=[pupdat_1[c], pupdat_2[c], pupdat_3[c]]
             
             newpup.append(np.max(temp))
