@@ -229,7 +229,23 @@ class PlotCanvas(FigureCanvas):
         self.win_ave=value*5
         self.win_lim=int(self.win_ave*2)
         
+    def ds_tobii_data(self):
     
+        newpup=[]
+        
+        # Take sample 1,2,3 > only one of those is a valid sample but Tobii 
+        # does this inconsistantly, therefore try all and take the valid sample
+        pupdat_1=self.pupdat[0::3]
+        pupdat_2=self.pupdat[1::3]
+        pupdat_3=self.pupdat[2::3]
+        
+        for c,val in enumerate(pupdat_1):
+            temp=[pupdat_1[c], pupdat_2[c], pupdat_3[c]]
+            
+            newpup.append(np.max(temp))
+        
+        self.pupdat = newpup   
+        
     def get_data(self):
 
         # Get datafile
@@ -314,7 +330,8 @@ class PlotCanvas(FigureCanvas):
                 self.pupdat=[(val+self.pupdatL[c])/2 for val in self.pupdatR]
             
             # Tobii records only every 3rd sample
-            self.pupdat = self.pupdat[0::3] 
+            #OLD way which did not work well for all data: self.pupdat = self.pupdat[0::3]
+            self.ds_tobii_data()
             
             # Remove highfreq noise from Tobii data with a rolling average
             rol_val=self.inputdata.rol_val
