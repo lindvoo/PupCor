@@ -257,6 +257,13 @@ class PlotCanvas(FigureCanvas):
         
         f = open(self.filename[0], 'r')
         self.rawdat=f.readlines()
+        
+        # Split path and file for saving
+        path, file = os.path.split(self.filename[0])
+
+        # Create output directory
+        if not os.path.exists(os.path.join(path, 'PupCor_output')):
+            os.makedirs(os.path.join(path, 'PupCor_output'))
 
 
         if file_extension == '.asc': # eye link converted ascii file
@@ -341,6 +348,10 @@ class PlotCanvas(FigureCanvas):
             pupdat_nan_sm = pupdat_nan_sm[0].values.tolist()
             pupdat_nan_sm= pupdat_nan_sm[int(rol_val/2):] + [-1] * int(rol_val/2)
             self.pupdat=[-1 if val==-1 else pupdat_nan_sm[c] for c,val in enumerate(self.pupdat)] # Put back blinks [-1]
+
+            # Create file and save in PulseCor_output directory for Tobii data
+            newname = os.path.join(path, "PupCor_output", file[:-4] + "_raw_pup.txt")
+            np.savetxt(newname, self.pupdat)
 
 
         self.axes.cla()
