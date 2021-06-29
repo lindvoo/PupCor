@@ -523,26 +523,27 @@ class PlotCanvas(FigureCanvas):
         
         # only interpolate when data is within the window to prevent errors when
         # zoomed in on the edges
-        
-        # Loop over interpolation start values
-        for c_evt, n_evt in enumerate(self.interpol_evt_str):
+        if x[0] > 0 and x[1] < len(self.pupdat):
             
-            # Define interpolation value [average of -X window]
-            str_val=self.pupdat[self.interpol_evt_str[c_evt]-self.win_ave]
-            end_val=self.pupdat[self.interpol_evt_end[c_evt]+self.win_ave]
-            
-            # Define the gap that needs to be filled [half the start window to half the end window]
-            gap_val=(self.interpol_evt_end[c_evt]+self.win_ave)-(self.interpol_evt_str[c_evt]-self.win_ave)
-            int_val=(end_val-str_val)/gap_val
-        
-            # interpolate
-            for c_sam in range((self.interpol_evt_str[c_evt]-self.win_ave),(self.interpol_evt_end[c_evt]+self.win_ave)+1):
-                self.int_pupdat[c_sam]=self.int_pupdat[c_sam-1]+int_val
+            # Loop over interpolation start values
+            for c_evt, n_evt in enumerate(self.interpol_evt_str):
 
-        # Replot
-        self.plotsmooth=0
-        self.remove()
-        self.plotall()
+                # Define interpolation value [average of -X window]
+                str_val=self.pupdat[self.interpol_evt_str[c_evt]-self.win_ave]
+                end_val=self.pupdat[self.interpol_evt_end[c_evt]+self.win_ave]
+
+                # Define the gap that needs to be filled [half the start window to half the end window]
+                gap_val=(self.interpol_evt_end[c_evt]+self.win_ave)-(self.interpol_evt_str[c_evt]-self.win_ave)
+                int_val=(end_val-str_val)/gap_val
+
+                # interpolate
+                for c_sam in range((self.interpol_evt_str[c_evt]-self.win_ave),(self.interpol_evt_end[c_evt]+self.win_ave)+1):
+                    self.int_pupdat[c_sam]=self.int_pupdat[c_sam-1]+int_val
+
+            # Replot
+            self.plotsmooth=0
+            self.remove()
+            self.plotall()
 
     def do_man_restore(self):
 
