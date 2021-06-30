@@ -351,7 +351,7 @@ class PlotCanvas(FigureCanvas):
 
             # Create file and save in PulseCor_output directory for Tobii data
             newname = os.path.join(path, "PupCor_output", file[:-4] + "_raw_pup.txt")
-            np.savetxt(newname, self.pupdat)
+            np.savetxt(newname, self.pupdat, fmt='%1.4f')
 
 
         self.axes.cla()
@@ -619,17 +619,19 @@ class PlotCanvas(FigureCanvas):
 
             # Create file and save in PulseCor_output directory
             newname = os.path.join(path, "PupCor_output", file[:-4] + "_int_pup.txt")
-            print(newname)
-            thefile = open(newname, 'w')
-            for item in self.int_pupdat:
-                thefile.write("%s\n" % int(item))
-            thefile.close()
+            np.savetxt(newname, self.int_pupdat, fmt='%1.4f')
+            #print(newname)
+            #thefile = open(newname, 'w')
+            #for item in self.int_pupdat:
+            #    thefile.write("%s\n" % int(item))
+            #thefile.close()
             
             newname = os.path.join(path, "PupCor_output", file[:-4] + "_smth_int_pup.txt")
-            thefile = open(newname, 'w')
-            for item in self.smooth_int_pupdat:
-                thefile.write("%s\n" % int(item))
-            thefile.close()
+            np.savetxt(newname, self.smooth_int_pupdat, fmt='%1.4f')
+            #thefile = open(newname, 'w')
+            #for item in self.smooth_int_pupdat:
+            #    thefile.write("%s\n" % int(item))
+            #thefile.close()
 
         except:
             pass
