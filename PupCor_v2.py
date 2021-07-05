@@ -229,22 +229,22 @@ class PlotCanvas(FigureCanvas):
         self.win_ave=value*5
         self.win_lim=int(self.win_ave*2)
         
-    def ds_tobii_data(self):
+    def ds_tobii_data(self,t_pupdat):
     
         newpup=[]
         
         # Take sample 1,2,3 > only one of those is a valid sample but Tobii 
         # does this inconsistantly, therefore try all and take the valid sample
-        pupdat_1=self.pupdat[0::3]
-        pupdat_2=self.pupdat[1::3]
-        pupdat_3=self.pupdat[2::3]
-        
+        pupdat_1=t_pupdat[0::3]
+        pupdat_2=t_pupdat[1::3]
+        pupdat_3=t_pupdat[2::3]
         for c in range(0,np.min([len(pupdat_1),len(pupdat_2),len(pupdat_3)])):
+
             temp=[pupdat_1[c], pupdat_2[c], pupdat_3[c]]
             
             newpup.append(np.max(temp))
-        
-        self.pupdat = newpup   
+
+        return newpup   
         
     def get_data(self):
 
@@ -326,19 +326,31 @@ class PlotCanvas(FigureCanvas):
             if self.inputdata.whichside=='Left':
                 which_side=[c for c,val in enumerate(header) if val=='PupilSizeLeft'] 
                 self.pupdat = [float(x) for x in dat[which_side[0]]] 
+                
+                # Tobii records only every 3rd sample
+                self.pupdat = self.ds_tobii_data(self.pupdat)
+                
             elif self.inputdata.whichside=='Right':
                 which_side=[c for c,val in enumerate(header) if val=='PupilSizeRight'] 
                 self.pupdat = [float(x) for x in dat[which_side[0]]] 
+                
+                # Tobii records only every 3rd sample
+                self.pupdat = self.ds_tobii_data(self.pupdat)
+                
             elif self.inputdata.whichside=='Mean':
                 which_sideL=[c for c,val in enumerate(header) if val=='PupilSizeLeft'] 
                 which_sideR=[c for c,val in enumerate(header) if val=='PupilSizeRight'] 
                 self.pupdatL = [float(x) for x in dat[which_sideL[0]]] 
                 self.pupdatR = [float(x) for x in dat[which_sideR[0]]] 
-                self.pupdat=[(val+self.pupdatL[c])/2 for val in self.pupdatR]
+                
+                # Tobii records only every 3rd sample
+                self.pupdatL = self.ds_tobii_data(self.pupdatL)
+                self.pupdatR = self.ds_tobii_data(self.pupdatR) 
+                self.pupdat=np.average(np.array([self.pupdatL,self.pupdatR]), axis=0)
             
             # Tobii records only every 3rd sample
             #OLD way which did not work well for all data: self.pupdat = self.pupdat[0::3]
-            self.ds_tobii_data()
+            #self.ds_tobii_data()
             
             # Remove highfreq noise from Tobii data with a rolling average
             rol_val=self.inputdata.rol_val
