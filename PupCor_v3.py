@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Dec  2 18:47:31 2020
+Created on Wed Nov 10 12:48:50 2021
 
 @author: lindadevoogd
 """
@@ -32,7 +32,7 @@ import scipy.ndimage as ndimage
 # ------------------------------------------------------------------------------
 
 # Now adding defaults from a different file for easy access of settings
-from defaults_PupCor_v2 import pupcor_settings
+from defaults_PupCor_v3 import pupcor_settings
 
 
 # ------------------------------------------------------------------------------
@@ -250,7 +250,7 @@ class PlotCanvas(FigureCanvas):
 
         # Get datafile
         self.filename = QFileDialog.getOpenFileName(self,
-                                                    'Open a data file', '.', 'Files (*.asc *.tsv);;All Files (*.*)')
+                                                    'Open a data file', '.', 'Files (*.asc *.tsv *.txt);;All Files (*.*)')
         
         
         flname, file_extension = os.path.splitext(self.filename[0])
@@ -365,6 +365,53 @@ class PlotCanvas(FigureCanvas):
             newname = os.path.join(path, "PupCor_output", file[:-4] + "_raw_pup.txt")
             np.savetxt(newname, self.pupdat, fmt='%1.4f')
 
+        elif file_extension == '.txt': #SMI implementation [based on SMI Red500]
+            
+            self.blinkval=0 #SMI sets blinks to 0
+            
+            # Get the sample frequency
+            rcd_line=[line for cnt, line in enumerate(self.rawdat) if "Sample Rate" in line]
+            sampleline=rcd_line[0].split()
+            self.recorded_sF=int(sampleline[3])
+            print('Your sample freq is ' + str(self.recorded_sF) + ' Hz and will be downsamled to 50 Hz')
+            
+            # remove lines [SMI txt file, first lines contain ##]
+            for rmstr in ["##","# Message"]:
+                self.rawdat = [line for line in self.rawdat if not rmstr in line]
+                
+            header = self.rawdat[0].split("\t")
+            dat = [[] for val in header]
+
+            for c,line in enumerate(self.rawdat[1:]):
+                
+                spt_line=line.split('\t')
+                
+                for cc,dd in enumerate(spt_line):
+                    dat[cc].append(dd.strip('  '))
+                    
+            #get pupil dilation
+            if self.inputdata.whichside=='Left':
+                which_side=[c for c,val in enumerate(header) if val=='L Dia X [px]'] #X and Y are same value
+                self.pupdat = [float(x) for x in dat[which_side[0]]] 
+                
+            elif self.inputdata.whichside=='Right':
+                which_side=[c for c,val in enumerate(header) if val=='R Dia X [px]'] 
+                self.pupdat = [float(x) for x in dat[which_side[0]]] 
+                
+            elif self.inputdata.whichside=='Mean':
+                which_sideL=[c for c,val in enumerate(header) if val=='L Dia X [px]'] 
+                which_sideR=[c for c,val in enumerate(header) if val=='R Dia X [px]'] 
+                self.pupdatL = [float(x) for x in dat[which_sideL[0]]] 
+                self.pupdatR = [float(x) for x in dat[which_sideR[0]]] 
+                
+                # Average
+                self.pupdat=np.average(np.array([self.pupdatL,self.pupdatR]), axis=0)
+                
+                
+            #down sample to 50 HZ
+            downsF=int(self.recorded_sF/self.sF)
+            self.pupdat=self.pupdat[0::downsF]
+            self.pupdat=self.pupdat.tolist()
 
         self.axes.cla()
         self.axes.plot(self.pupdat, c='C0')
@@ -823,4 +870,3 @@ app = QApplication(sys.argv)
 window = Window()
 window.show()
 app.exec()
-
