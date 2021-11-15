@@ -1,11 +1,13 @@
 # PupCor
 a simple python-based GUI to preprocess and manually correct pupil data 
 
-You just need to download the "PupCor_v2.py" and "defaults_PupCor_v2.py" files and install the dependencies.
+You just need to download the "PupCor_v3.py" and "defaults_PupCor_v3.py" files and install the dependencies.
 
-It is a very simply nothing fancy, easy to use GUI to get interpolated (and smoothed) pupil data [for the EyeLink (.asc files) and Tobii (.tsv files) eyetrackers for now]. In addition there is an option to go through the time course on a trial-by-trial basis [not yet tested for the Tobii data], for which you need a file containing the times of the markers (eg onset of your stimuli). You can use this to manually accept or reject trial in case the data for that trial is not usable (eg someone closed there eyes for some time).
+It is a very simply nothing fancy, easy to use GUI to get interpolated (and smoothed) pupil data [for the EyeLink (.asc files), Tobii (.tsv files), and already converted SMI red500 (.txt files) eyetrackers for now]. In addition there is an option to go through the time course on a trial-by-trial basis [not yet tested for the Tobii data], for which you need a file containing the times of the markers (eg onset of your stimuli). You can use this to manually accept or reject trial in case the data for that trial is not usable (eg someone closed there eyes for some time).
 
 Notes for Tobii data: I have noticed this contains some high freq noise probably due to limited accuracy in sampling? so when the Tobii data is read in an rolling average is applied to get rid of this and facilitate interpolation. When this setting is set to [1] no rolling average is applied.
+
+Notes for SMI red500: X and Y data seem to be the same so now only one is used but could be changed.
 
 # TIME COURSE
 These are the steps you can follow:
