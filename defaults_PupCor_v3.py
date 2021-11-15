@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jan 12 09:05:25 2021
+Created on Wed Nov 10 12:49:34 2021
 
-@author: lindadevoogd
+@author: lindvoo
 """
-
 
 # Settings
 class pupcor_settings():
     
     def __init__(self):
         
-        self.which_eyetracker='Tobii' #[EyeLink / Tobii]
+        self.which_eyetracker='SMI' #[EyeLink / Tobii / SMI]
         
         # GUI settings [generally you do not need to change this but if you 
         # are unhappy with the size or position on the screen you can change this]
@@ -49,12 +48,18 @@ class pupcor_settings():
         # Define sample frequency > is used f.e. for trial-by-trail data and other convertion of sec to samples
         if  self.which_eyetracker == 'Tobii':
              self.Hz=40 #standard sample frequency?
-        elif self.which_eyetracker == 'EyeLink':
+        else:
             self.Hz=50 #EyeLink data will be downsampled to 50 hz
         
-        # Tobii settings
-        self.whichside='Mean' # Pick your eye: Left, Right, Mean
-        self.rol_val=10 # rolling average for removing Tobii high freq noise, 
+        
+        # Additional Tobii and SMI Red500 settings
+        #----------------------------------------------------------------------
+        self.whichside='Mean'   # Tobii/SMI > Pick your eye: Left, Right, Mean
+
+        self.rol_val=10 # Tobii > rolling average for removing Tobii high freq noise, 
                         # 10 seems to work well [1=no smoothing] note: as rolling average
                         # shifts the signal the signal is put back in time to account
                         # for this
+                        
+
+        
