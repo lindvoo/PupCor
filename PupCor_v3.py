@@ -18,7 +18,8 @@ import pandas as pd
 #from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt, QUrl
 from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QFileDialog, QInputDialog, QLineEdit, QSlider, QLabel
+from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QFileDialog, QInputDialog, QLineEdit, QSlider, QLabel, QRadioButton, QGridLayout
+from PyQt5.QtWidgets import QVBoxLayout
 
 # Used to plot the data
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -77,8 +78,6 @@ class Window(QMainWindow):
                                           height=(self.height * .3) / 100)
         self.canvas_tr.move(self.width / 8, (self.height / 2) + self.height / 10)
 
-        # Draw Line
-
         
         # Add buttons > time course [tc plot]
         x_left = self.width / 60
@@ -108,6 +107,9 @@ class Window(QMainWindow):
         self.makebutton("Save", x=x_left, y=y_start * 13,
                         do_action=self.canvas_tc.save)
         
+        
+        
+        
         #--window
         self.nameLabel = QLabel('Interpolate blinks:', self)
         self.nameLabel.setFont(QFont('Arial', 10))
@@ -126,6 +128,29 @@ class Window(QMainWindow):
         mySlider.setSingleStep(10)
         #---
 
+        #--window
+        if self.inputdata.which_eyetracker == 'Tobii':
+            self.nameLabel1 = QLabel('Which eye:', self)
+            self.nameLabel1.setFont(QFont('Arial', 10))
+            self.nameLabel1.move(x_left,y_start * 16)
+            
+            self.nameLabel2 = QLabel('Left  |  Mean  |  Right', self)
+            self.nameLabel2.setAlignment(Qt.AlignCenter)
+            self.nameLabel2.setFont(QFont('Arial', 10))
+            self.nameLabel2.move(x_left,y_start * 17)
+    
+            mySlider2 = QSlider(Qt.Horizontal, self)
+            mySlider2.setGeometry(x_left, y_start * 18, 100, 30)
+            mySlider2.setMinimum(1)
+            mySlider2.setMaximum(3)
+            mySlider2.setValue(2)
+            mySlider2.setTickInterval(1)
+            mySlider2.setTickPosition(QSlider.TicksBelow)
+            
+            
+            mySlider2.valueChanged[int].connect(self.canvas_tc.slidervalue3)
+            mySlider2.setSingleStep(1)
+        #---
 
         # Add buttons > trials [tr canvas]
         self.makebutton("Get trials", x=x_left, y=((self.height / 2) + self.height / 10) + y_start,
@@ -141,9 +166,18 @@ class Window(QMainWindow):
         self.makebutton("Save", x=x_left, y=((self.height / 2) + self.height / 10) + y_start * 6,
                         do_action=self.canvas_tr.save)
 
+        
+
+
+
         self.fileLabel = QLabel('file name', self)
         self.fileLabel.move(x_left,((self.height / 2) + self.height / 10) + y_start * 10)
 
+    def onClicked(self):
+        radioButton = self.sender()
+        if radioButton.isChecked():
+            print("Eye is %s" % (radioButton.eye))
+   
     def change_label(self):
 
         nameoffile = self.canvas_tc.filename[0].rstrip(os.sep)
@@ -229,6 +263,21 @@ class PlotCanvas(FigureCanvas):
         self.win_ave=value*5
         self.win_lim=int(self.win_ave*2)
         
+    def slidervalue3(self, value):
+        
+        try:
+            self.pupdatM
+        
+        except:
+            
+            print("Please load data first")
+        
+        else:
+        
+            if self.inputdata.which_eyetracker == 'Tobii':
+                self.pickeye_tobii_data(value)
+            
+ 
     def ds_tobii_data(self,t_pupdat):
     
         newpup=[]
@@ -245,6 +294,39 @@ class PlotCanvas(FigureCanvas):
             newpup.append(np.max(temp))
 
         return newpup   
+    
+    def pickeye_tobii_data(self,value):
+        
+            
+        # Select the eye you want
+        if value == 1:
+            self.pupdat = self.pupdatL
+        elif value == 2:
+            self.pupdat = self.pupdatM
+        elif value == 3:
+            self.pupdat = self.pupdatR
+            
+        # Remove highfreq noise from Tobii data with a rolling average
+        rol_val=self.inputdata.rol_val
+        pupdat_nan=[np.nan if val==-1 else self.pupdat[c] for c,val in enumerate(self.pupdat)]
+        df = pd.DataFrame(pupdat_nan)
+        pupdat_nan_sm = df.rolling(rol_val, min_periods=1).mean()
+        pupdat_nan_sm = pupdat_nan_sm[0].values.tolist()
+        pupdat_nan_sm= pupdat_nan_sm[int(rol_val/2):] + [-1] * int(rol_val/2)
+        self.pupdat=[-1 if val==-1 else pupdat_nan_sm[c] for c,val in enumerate(self.pupdat)] # Put back blinks [-1]
+
+        # Create file and save in PulseCor_output directory for Tobii data
+        newnameL = os.path.join(self.path, "PupCor_output", self.file[:-4] + "_raw_pup_Left.txt")
+        newnameR = os.path.join(self.path, "PupCor_output", self.file[:-4] + "_raw_pup_Right.txt")
+        newnameM = os.path.join(self.path, "PupCor_output", self.file[:-4] + "_raw_pup_Mean.txt")
+        np.savetxt(newnameL, self.pupdat, fmt='%1.4f')
+        np.savetxt(newnameR, self.pupdat, fmt='%1.4f')
+        np.savetxt(newnameM, self.pupdat, fmt='%1.4f')
+            
+        # Plot the data
+        self.axes.cla()
+        self.axes.plot(self.pupdat, c='C0')
+        self.draw()
         
     def get_data(self):
 
@@ -259,11 +341,11 @@ class PlotCanvas(FigureCanvas):
         self.rawdat=f.readlines()
         
         # Split path and file for saving
-        path, file = os.path.split(self.filename[0])
+        self.path, self.file = os.path.split(self.filename[0])
 
         # Create output directory
-        if not os.path.exists(os.path.join(path, 'PupCor_output')):
-            os.makedirs(os.path.join(path, 'PupCor_output'))
+        if not os.path.exists(os.path.join(self.path, 'PupCor_output')):
+            os.makedirs(os.path.join(self.path, 'PupCor_output'))
 
 
         if file_extension == '.asc': # eye link converted ascii file
@@ -322,49 +404,27 @@ class PlotCanvas(FigureCanvas):
                 for cc,dd in enumerate(spt_line):
                     dat[cc].append(dd.strip('  '))
             
-            #get pupil dilation
-            if self.inputdata.whichside=='Left':
-                which_side=[c for c,val in enumerate(header) if val=='PupilSizeLeft'] 
-                self.pupdat = [float(x) for x in dat[which_side[0]]] 
-                
-                # Tobii records only every 3rd sample
-                self.pupdat = self.ds_tobii_data(self.pupdat)
-                
-            elif self.inputdata.whichside=='Right':
-                which_side=[c for c,val in enumerate(header) if val=='PupilSizeRight'] 
-                self.pupdat = [float(x) for x in dat[which_side[0]]] 
-                
-                # Tobii records only every 3rd sample
-                self.pupdat = self.ds_tobii_data(self.pupdat)
-                
-            elif self.inputdata.whichside=='Mean':
-                which_sideL=[c for c,val in enumerate(header) if val=='PupilSizeLeft'] 
-                which_sideR=[c for c,val in enumerate(header) if val=='PupilSizeRight'] 
-                self.pupdatL = [float(x) for x in dat[which_sideL[0]]] 
-                self.pupdatR = [float(x) for x in dat[which_sideR[0]]] 
-                
-                # Tobii records only every 3rd sample
-                self.pupdatL = self.ds_tobii_data(self.pupdatL)
-                self.pupdatR = self.ds_tobii_data(self.pupdatR) 
-                self.pupdat=np.average(np.array([self.pupdatL,self.pupdatR]), axis=0)
+            
+            # Get pupil data
+            which_sideL=[c for c,val in enumerate(header) if val=='PupilSizeLeft'] 
+            which_sideR=[c for c,val in enumerate(header) if val=='PupilSizeRight'] 
+            self.pupdatL = [float(x) for x in dat[which_sideL[0]]] 
+            self.pupdatR = [float(x) for x in dat[which_sideR[0]]] 
             
             # Tobii records only every 3rd sample
-            #OLD way which did not work well for all data: self.pupdat = self.pupdat[0::3]
-            #self.ds_tobii_data()
+            self.pupdatL = self.ds_tobii_data(self.pupdatL)
+            self.pupdatR = self.ds_tobii_data(self.pupdatR) 
+            self.pupdatM=np.average(np.array([self.pupdatL,self.pupdatR]), axis=0)
             
-            # Remove highfreq noise from Tobii data with a rolling average
-            rol_val=self.inputdata.rol_val
-            pupdat_nan=[np.nan if val==-1 else self.pupdat[c] for c,val in enumerate(self.pupdat)]
-            df = pd.DataFrame(pupdat_nan)
-            pupdat_nan_sm = df.rolling(rol_val, min_periods=1).mean()
-            pupdat_nan_sm = pupdat_nan_sm[0].values.tolist()
-            pupdat_nan_sm= pupdat_nan_sm[int(rol_val/2):] + [-1] * int(rol_val/2)
-            self.pupdat=[-1 if val==-1 else pupdat_nan_sm[c] for c,val in enumerate(self.pupdat)] # Put back blinks [-1]
-
-            # Create file and save in PulseCor_output directory for Tobii data
-            newname = os.path.join(path, "PupCor_output", file[:-4] + "_raw_pup.txt")
-            np.savetxt(newname, self.pupdat, fmt='%1.4f')
-
+            # Add blinks back in for the mean
+            self.pupdatM=[-1 if val==-1 else self.pupdatM[c] for c,val in enumerate(self.pupdatL)]
+            self.pupdatM=[-1 if val==-1 else self.pupdatM[c] for c,val in enumerate(self.pupdatR)]
+                
+            # Get default Mean data
+            self.pickeye_tobii_data(2)
+            
+            
+            
         elif file_extension == '.txt': #SMI implementation [based on SMI Red500]
             
             self.blinkval=0 #SMI sets blinks to 0
@@ -407,12 +467,13 @@ class PlotCanvas(FigureCanvas):
                 # Average
                 self.pupdat=np.average(np.array([self.pupdatL,self.pupdatR]), axis=0)
                 
-                
             #down sample to 50 HZ
             downsF=int(self.recorded_sF/self.sF)
             self.pupdat=self.pupdat[0::downsF]
             self.pupdat=self.pupdat.tolist()
 
+
+        # Plot the data
         self.axes.cla()
         self.axes.plot(self.pupdat, c='C0')
         self.draw()
