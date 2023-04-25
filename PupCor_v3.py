@@ -354,7 +354,10 @@ class PlotCanvas(FigureCanvas):
             rcd_line=[line for cnt, line in enumerate(self.rawdat) if "RECCFG" in line]
             sampleline=rcd_line[0].split()
             self.eyelink_sF=int(sampleline[4])
-            print('Your sample freq is ' + str(self.eyelink_sF) + ' Hz and will be downsamled to 50 Hz')
+            if self.inputdata.dodownsample:
+                print('Your sample freq is ' + str(self.eyelink_sF) + ' Hz and will be downsamled to 50 Hz')
+            else:
+                print('Your sample freq is ' + str(self.eyelink_sF) + ' Hz')
         
             # remove lines [script crashes when these lines are in there]
             for rmstr in ["EFIX","ESACC","SFIX","SSACC","SBLINK","EBLINK","END"]:
@@ -386,8 +389,9 @@ class PlotCanvas(FigureCanvas):
             self.pupdat = [int(float(x)) for x in dat[3]]
     
             #down sample to 50 HZ
-            downsF=int(self.eyelink_sF/self.sF)
-            self.pupdat=self.pupdat[0::downsF]
+            if self.inputdata.dodownsample:
+                downsF=int(self.eyelink_sF/self.sF)
+                self.pupdat=self.pupdat[0::downsF]
             
             
         elif file_extension == '.tsv': #Tobii implementation
@@ -433,7 +437,10 @@ class PlotCanvas(FigureCanvas):
             rcd_line=[line for cnt, line in enumerate(self.rawdat) if "Sample Rate" in line]
             sampleline=rcd_line[0].split()
             self.recorded_sF=int(sampleline[3])
-            print('Your sample freq is ' + str(self.recorded_sF) + ' Hz and will be downsamled to 50 Hz')
+            if self.inputdata.dodownsample:
+                print('Your sample freq is ' + str(self.recorded_sF) + ' Hz and will be downsamled to 50 Hz')
+            else:
+                print('Your sample freq is ' + str(self.recorded_sF) + ' Hz')
             
             # remove lines [SMI txt file, first lines contain ##]
             for rmstr in ["##","# Message"]:
@@ -468,9 +475,10 @@ class PlotCanvas(FigureCanvas):
                 self.pupdat=np.average(np.array([self.pupdatL,self.pupdatR]), axis=0)
                 
             #down sample to 50 HZ
-            downsF=int(self.recorded_sF/self.sF)
-            self.pupdat=self.pupdat[0::downsF]
-            self.pupdat=self.pupdat.tolist()
+            if self.inputdata.dodownsample:
+                downsF=int(self.recorded_sF/self.sF)
+                self.pupdat=self.pupdat[0::downsF]
+                self.pupdat=self.pupdat.tolist()
 
 
         # Plot the data
@@ -482,7 +490,9 @@ class PlotCanvas(FigureCanvas):
     def get_eyeblinks(self):
         
         """Get eye blinks for interpolation"""
-                       
+        
+        self.remove()
+        
         if self.blinkval < max(self.pupdat):
             
             # make empty
@@ -701,8 +711,14 @@ class PlotCanvas(FigureCanvas):
         self.plotall()
         
     def remove(self):
-       
-        self.axes.lines=[]
+        '''
+        The modification of the Axes.lines property was deprecated in Matplotlib 3.5 
+        and will be removed two minor releases later. Use Artist.remove() instead.
+        '''
+        
+        #self.axes.lines=[]
+        for c,a in enumerate(self.axes.lines):
+            self.axes.lines.pop(c)
 
     def plotall(self):
 
