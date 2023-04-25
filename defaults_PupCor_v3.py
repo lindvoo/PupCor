@@ -46,6 +46,7 @@ class pupcor_settings():
         self.stimduur = 6  # seconds > can be changed in GUI
         
         # Define sample frequency > is used f.e. for trial-by-trail data and other convertion of sec to samples
+        self.dodownsample=0 #1=yes, 0=no
         if  self.which_eyetracker == 'Tobii':
              self.Hz=40 #standard sample frequency?
         else:
